@@ -71,7 +71,7 @@ impl Movie {
         VideoPlayerHandle::new(device, audio_manager, self.mp4.clone())
     }
 
-    #[cfg(all(test, target_os = "macos"))]
+    #[cfg(test)]
     pub fn prepare_looping_with_volume(
         &self,
         device: &wgpu::Device,

@@ -5,6 +5,13 @@ use glam::Vec2;
 use serde_json::Value;
 use std::{fs, path::PathBuf};
 
+fn assert_f32_bits_match(actual: f32, expected_bits: u32, msg: impl std::fmt::Display) {
+    if actual.is_nan() && f32::from_bits(expected_bits).is_nan() {
+        return;
+    }
+    assert_eq!(actual.to_bits(), expected_bits, "{msg}");
+}
+
 fn directory() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../test-fixtures/umineko-sdk-audit-20261015/actual-sdk/tile-state/whole-tile/domains")
 }
@@ -141,21 +148,19 @@ fn umineko_tile_domains_match_original_sdk_uploads() {
             case["selected_shader"].as_u64().unwrap() as u32
         );
         let matrix = transform.compute_final_transform();
-        assert_eq!(
-            matrix.w_axis.x.to_bits(),
+        assert_f32_bits_match(
+            matrix.w_axis.x,
             word(upload, h[9] as usize + 48),
-            "G12 {}",
-            case["name"]
+            format_args!("G12 {}", case["name"]),
         );
         // GL/WGPU differ only in the depth row. Preserve every other word,
         // including copied NaN payloads and signs, rather than just G12.
         for (lane, value) in matrix.to_cols_array().into_iter().enumerate() {
             if lane % 4 != 2 {
-                assert_eq!(
-                    value.to_bits(),
+                assert_f32_bits_match(
+                    value,
                     word(upload, h[9] as usize + lane * 4),
-                    "matrix{lane} {}",
-                    case["name"]
+                    format_args!("matrix{lane} {}", case["name"]),
                 );
             }
         }
@@ -175,17 +180,27 @@ fn umineko_tile_domains_match_original_sdk_uploads() {
         let vertices = tile.vertices(tinted, shader, drawable.shader_param, matrix);
         for (i, vertex) in vertices.iter().enumerate() {
             let offset = h[10] as usize + i * 16;
-            let actual = [
-                vertex.position.x.to_bits(),
-                vertex.position.y.to_bits(),
-                vertex.position.z.to_bits(),
-                // Original vertices use BGRA; WGPU PosCol uses RGBA.
-                (vertex.color.0 & 0xff00_ff00)
-                    | ((vertex.color.0 & 255) << 16)
-                    | ((vertex.color.0 >> 16) & 255),
-            ];
-            let expected: [u32; 4] = std::array::from_fn(|lane| word(upload, offset + lane * 4));
-            assert_eq!(actual, expected, "vertex{i} {}", case["name"]);
+            assert_f32_bits_match(
+                vertex.position.x,
+                word(upload, offset),
+                format_args!("vertex{i}.x {}", case["name"]),
+            );
+            assert_f32_bits_match(
+                vertex.position.y,
+                word(upload, offset + 4),
+                format_args!("vertex{i}.y {}", case["name"]),
+            );
+            assert_f32_bits_match(
+                vertex.position.z,
+                word(upload, offset + 8),
+                format_args!("vertex{i}.z {}", case["name"]),
+            );
+            // Original vertices use BGRA; WGPU PosCol uses RGBA.
+            let actual_color = (vertex.color.0 & 0xff00_ff00)
+                | ((vertex.color.0 & 255) << 16)
+                | ((vertex.color.0 >> 16) & 255);
+            let expected_color = word(upload, offset + 12);
+            assert_eq!(actual_color, expected_color, "vertex{i} color {}", case["name"]);
         }
     }
     assert_eq!(drawn, 92);

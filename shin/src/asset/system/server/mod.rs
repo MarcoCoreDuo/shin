@@ -1,5 +1,5 @@
 mod accessor;
-#[cfg(all(test, target_os = "macos"))]
+#[cfg(test)]
 pub(crate) mod accessor_io_reference_tests;
 #[cfg(all(test, target_os = "macos"))]
 mod adpcm_failure_reference_tests;

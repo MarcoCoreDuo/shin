@@ -2,11 +2,13 @@ use super::*;
 use shin_core::primitives::stateless_reader::StatelessReader;
 use std::io::Read;
 
+#[cfg(unix)]
 pub(crate) struct IoFault {
     arm: unsafe extern "C" fn(*const std::ffi::c_char, u64, u64, i32) -> i32,
     report: unsafe extern "C" fn(u32) -> u64,
 }
 
+#[cfg(unix)]
 impl IoFault {
     pub(crate) fn load() -> Self {
         unsafe extern "C" {
@@ -64,6 +66,7 @@ impl StatelessReader for OffsetProbe {
     }
 }
 
+#[cfg(unix)]
 pub(crate) fn supplied_portrait() -> (LayeredAssetIo, PathBuf, String, u64, Vec<u8>) {
     let base = PathBuf::from(std::env::var_os("SHIN_REFERENCE_ROM").unwrap());
     let mut paths = Vec::new();
@@ -141,6 +144,7 @@ pub(crate) fn supplied_payload(path: &str) -> (PathBuf, u64, Vec<u8>) {
 
 #[test]
 #[ignore = "requires supplied ROM and explicit Darwin syscall interposer; no GPU/audio/saves"]
+#[cfg(unix)]
 fn reference_asset_accessor_io_failure_recovery() {
     let output = PathBuf::from(std::env::var_os("SHIN_REFERENCE_ASSET_IO_OUTPUT").unwrap());
     std::fs::create_dir_all(&output).unwrap();
@@ -246,6 +250,7 @@ fn reference_asset_accessor_io_failure_recovery() {
     std::fs::write(output.join("accessor.txt"), summary).unwrap();
 }
 
+#[cfg(target_os = "macos")]
 pub(crate) fn verify_asset_load_failures(
     context: &AssetLoadContext,
     scenario: &shin_core::format::scenario::Scenario,

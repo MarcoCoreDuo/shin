@@ -33,10 +33,8 @@ pub use self::{
 pub use self::locate::locate_assets;
 
 #[cfg(all(test, target_os = "macos"))]
-pub(crate) use server::accessor_io_reference_tests::verify_asset_load_failures;
-#[cfg(all(test, target_os = "macos"))]
-pub(crate) use server::accessor_io_reference_tests::{
-    IoFault, supplied_payload, supplied_portrait,
-};
+pub(crate) use server::accessor_io_reference_tests::{IoFault, verify_asset_load_failures};
+#[cfg(test)]
+pub(crate) use server::accessor_io_reference_tests::supplied_payload;
 
 pub(crate) use server::AssetIo;
